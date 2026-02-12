@@ -6,12 +6,20 @@ import { User } from '@/lib/types';
 
 export default function Navbar() {
     const [user, setUser] = useState<User | null>(null);
+    const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
     useEffect(() => {
         const checkAuth = () => {
             const stored = localStorage.getItem('driveease_user');
             setUser(stored ? JSON.parse(stored) : null);
         };
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('driveease_theme') as 'dark' | 'light' | null;
+        if (savedTheme) {
+            setTheme(savedTheme);
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
 
         checkAuth();
         window.addEventListener('auth-change', checkAuth);
@@ -22,6 +30,13 @@ export default function Navbar() {
             window.removeEventListener('storage', checkAuth);
         };
     }, []);
+
+    const toggleTheme = () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('driveease_theme', next);
+    };
 
     return (
         <nav className="sticky top-0 z-50 glass">
@@ -35,13 +50,34 @@ export default function Navbar() {
                     <span className="text-lg font-bold gradient-text">DriveEase</span>
                 </Link>
 
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                     <Link href="/" className="text-sm text-muted hover:text-foreground transition-colors">
                         Vehicles
                     </Link>
                     <Link href="/bookings" className="text-sm text-muted hover:text-foreground transition-colors">
                         My Bookings
                     </Link>
+
+                    {/* Theme Toggle */}
+                    <button
+                        onClick={toggleTheme}
+                        className="theme-toggle"
+                        data-active={theme === 'light'}
+                        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                    >
+                        <div className="toggle-knob">
+                            {theme === 'dark' ? (
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                </svg>
+                            ) : (
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            )}
+                        </div>
+                    </button>
 
                     {user ? (
                         <Link
