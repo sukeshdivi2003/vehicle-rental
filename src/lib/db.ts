@@ -1,5 +1,11 @@
 import { neon } from '@neondatabase/serverless';
 
 export function getSQL() {
-  return neon(process.env.DATABASE_URL!);
+  if (!process.env.DATABASE_URL) {
+    throw new Error(
+      'DATABASE_URL environment variable is not set. ' +
+      'Please set it in .env.local for local development or in your Vercel project settings for production.'
+    );
+  }
+  return neon(process.env.DATABASE_URL);
 }

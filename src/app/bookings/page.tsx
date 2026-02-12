@@ -13,21 +13,43 @@ interface BookingWithVehicle extends Booking {
 export default function BookingsPage() {
     const [bookings, setBookings] = useState<BookingWithVehicle[]>([]);
     const [loading, setLoading] = useState(true);
+    const [cancellingId, setCancellingId] = useState<number | null>(null);
 
     useEffect(() => {
-        async function fetchBookings() {
-            try {
-                const res = await fetch('/api/bookings');
-                const data = await res.json();
-                setBookings(data);
-            } catch (error) {
-                console.error('Error fetching bookings:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
         fetchBookings();
     }, []);
+
+    async function fetchBookings() {
+        try {
+            const res = await fetch('/api/bookings');
+            const data = await res.json();
+            setBookings(data);
+        } catch (error) {
+            console.error('Error fetching bookings:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function cancelBooking(id: number) {
+        if (!confirm('Are you sure you want to cancel this booking?')) return;
+
+        setCancellingId(id);
+        try {
+            const res = await fetch(`/api/bookings/${id}`, { method: 'PATCH' });
+            if (!res.ok) throw new Error('Failed to cancel');
+
+            // Update local state
+            setBookings((prev) =>
+                prev.map((b) => (b.id === id ? { ...b, status: 'CANCELLED' } : b))
+            );
+        } catch (error) {
+            console.error('Error cancelling booking:', error);
+            alert('Failed to cancel booking. Please try again.');
+        } finally {
+            setCancellingId(null);
+        }
+    }
 
     const getStatusStyles = (status: string) => {
         switch (status) {
@@ -40,6 +62,13 @@ export default function BookingsPage() {
             default:
                 return 'bg-muted/10 text-muted border-muted/20';
         }
+    };
+
+    const getVehicleName = (booking: BookingWithVehicle) => {
+        if (booking.vehicle_make && booking.vehicle_model) {
+            return `${booking.vehicle_year || ''} ${booking.vehicle_make} ${booking.vehicle_model}`.trim();
+        }
+        return `Vehicle #${booking.vehicle_id}`;
     };
 
     return (
@@ -96,7 +125,7 @@ export default function BookingsPage() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                         <h3 className="text-lg font-semibold text-foreground">
-                                            Booking #{booking.id}
+                                            {getVehicleName(booking)}
                                         </h3>
                                         <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${getStatusStyles(booking.status)}`}>
                                             {booking.status}
@@ -104,8 +133,8 @@ export default function BookingsPage() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
                                         <div>
-                                            <p className="text-xs text-muted uppercase tracking-wide">Vehicle ID</p>
-                                            <p className="text-sm font-medium text-foreground">#{booking.vehicle_id}</p>
+                                            <p className="text-xs text-muted uppercase tracking-wide">Booking ID</p>
+                                            <p className="text-sm font-medium text-foreground">#{booking.id}</p>
                                         </div>
                                         <div>
                                             <p className="text-xs text-muted uppercase tracking-wide">Dates</p>
@@ -119,8 +148,19 @@ export default function BookingsPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="text-xs text-muted">
-                                    Booked on {new Date(booking.created_at).toLocaleDateString()}
+                                <div className="flex flex-col items-end gap-2">
+                                    <div className="text-xs text-muted">
+                                        Booked on {new Date(booking.created_at).toLocaleDateString()}
+                                    </div>
+                                    {booking.status === 'CONFIRMED' && (
+                                        <button
+                                            onClick={() => cancelBooking(booking.id)}
+                                            disabled={cancellingId === booking.id}
+                                            className="text-xs font-medium text-danger hover:text-danger/80 border border-danger/20 hover:bg-danger/5 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {cancellingId === booking.id ? 'Cancelling...' : 'Cancel Booking'}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

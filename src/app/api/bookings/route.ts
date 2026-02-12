@@ -43,7 +43,12 @@ export async function POST(request: NextRequest) {
 export async function GET() {
     try {
         const sql = getSQL();
-        const result = await sql`SELECT * FROM bookings ORDER BY created_at DESC`;
+        const result = await sql`
+      SELECT b.*, v.make AS vehicle_make, v.model AS vehicle_model, v.year AS vehicle_year
+      FROM bookings b
+      LEFT JOIN vehicles v ON b.vehicle_id = v.id
+      ORDER BY b.created_at DESC
+    `;
         return NextResponse.json(result);
     } catch (error) {
         console.error('Error fetching bookings:', error);

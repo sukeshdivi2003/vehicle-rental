@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { Vehicle } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function VehicleDetails({ params }: { params: Promise<{ id: string }> }) {
@@ -15,6 +16,9 @@ export default function VehicleDetails({ params }: { params: Promise<{ id: strin
     const [errorMessage, setErrorMessage] = useState('');
 
     const router = useRouter();
+
+    // Today's date in YYYY-MM-DD format for min attribute
+    const today = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
         async function fetchVehicle() {
@@ -36,6 +40,7 @@ export default function VehicleDetails({ params }: { params: Promise<{ id: strin
         if (!startDate || !endDate) return 0;
         const start = new Date(startDate);
         const end = new Date(endDate);
+        if (end < start) return 0;
         const diffTime = Math.abs(end.getTime() - start.getTime());
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     };
@@ -45,6 +50,13 @@ export default function VehicleDetails({ params }: { params: Promise<{ id: strin
     const handleBooking = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!vehicle || !startDate || !endDate) return;
+
+        // Client-side date validation
+        if (new Date(endDate) < new Date(startDate)) {
+            setBookingStatus('error');
+            setErrorMessage('Return date must be after pick-up date.');
+            return;
+        }
 
         setBookingStatus('loading');
 
@@ -110,11 +122,14 @@ export default function VehicleDetails({ params }: { params: Promise<{ id: strin
 
             <div className="bg-surface rounded-2xl shadow-sm overflow-hidden md:flex border border-border">
                 {/* Image */}
-                <div className="md:w-1/2 relative">
-                    <img
+                <div className="md:w-1/2 relative min-h-[400px]">
+                    <Image
                         src={vehicle.image_url}
                         alt={`${vehicle.make} ${vehicle.model}`}
-                        className="w-full h-full min-h-[400px] object-cover object-center"
+                        fill
+                        className="object-cover object-center"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        priority
                     />
                     <div className="absolute bottom-4 left-4">
                         <span className={`px-3 py-1 text-sm font-semibold rounded-full ${vehicle.is_available ? 'bg-success text-white' : 'bg-danger text-white'}`}>
@@ -161,9 +176,16 @@ export default function VehicleDetails({ params }: { params: Promise<{ id: strin
                                         type="date"
                                         id="start_date"
                                         required
+                                        min={today}
                                         className="w-full border border-border rounded-xl shadow-sm py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                                         value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
+                                        onChange={(e) => {
+                                            setStartDate(e.target.value);
+                                            // Reset end date if it's before new start date
+                                            if (endDate && e.target.value > endDate) {
+                                                setEndDate('');
+                                            }
+                                        }}
                                     />
                                 </div>
                                 <div>
@@ -174,6 +196,7 @@ export default function VehicleDetails({ params }: { params: Promise<{ id: strin
                                         type="date"
                                         id="end_date"
                                         required
+                                        min={startDate || today}
                                         className="w-full border border-border rounded-xl shadow-sm py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                                         value={endDate}
                                         onChange={(e) => setEndDate(e.target.value)}
