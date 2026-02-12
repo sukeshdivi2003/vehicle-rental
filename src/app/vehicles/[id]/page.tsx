@@ -126,8 +126,9 @@ export default function VehicleDetails({ params }: { params: Promise<{ id: strin
                     <Image
                         src={vehicle.image_url}
                         alt={`${vehicle.make} ${vehicle.model}`}
-                        fill
-                        className="object-cover object-center"
+                        width={800}
+                        height={500}
+                        className="w-full h-full min-h-[400px] object-cover object-center"
                         sizes="(max-width: 768px) 100vw, 50vw"
                         priority
                     />
